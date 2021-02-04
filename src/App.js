@@ -8,13 +8,14 @@ import About from './components/About'
 
 function App() {
   const [showAddTask, setShowAddTask] = useState(false);
-  const [tasks, setTasks] = useState([
-    
-])
+  const [tasks, setTasks] = useState([]);
 
 useEffect(() => {
   const getTask = async()=>{
-    const tasksFromServer = await fetchTasks();
+    let tasksFromServer = await fetchTasks();
+    if(tasksFromServer===null){
+      tasksFromServer = []
+    }
     setTasks(tasksFromServer);
   }
 
@@ -24,16 +25,30 @@ useEffect(() => {
 
 // fetch Tasks
 const fetchTasks = async()=>{
-  const res = await fetch('http://localhost:5000/tasks')
+  const res = await fetch('https://task-manage-3536b-default-rtdb.firebaseio.com/tasks.json')
   const data = await res.json();
-  return data
+  if(data==null){
+    return null
+  }
+  const newd = Object.values(data);
+  return newd
 }
 
 //fetch a single task
 const fetchTask = async (id)=>{
-  const res = await fetch(`http://localhost:5000/tasks/${id}`)
+  const res = await fetch(`https://task-manage-3536b-default-rtdb.firebaseio.com/tasks.json`)
   const data = await res.json();
-  return data
+  const newd = Object.values(data);
+  let realData = {};
+  newd.map((task)=>{
+    if(task.id===id){
+      realData = {...task}
+      return task
+    }else{
+      return task
+    }
+  })
+  return realData;
 }
 
 
@@ -41,7 +56,18 @@ const fetchTask = async (id)=>{
 
 //Delete task
    const deleteTask = async (id)=>{
-    await fetch(`http://localhost:5000/tasks/${id}`,{
+    const res = await fetch(`https://task-manage-3536b-default-rtdb.firebaseio.com/tasks.json`)
+    const data = await res.json();
+    const arr = Object.keys(data);
+    let key  = null;
+     arr.map((item)=>{
+      if(data[item].id===id){
+          key = item;
+          return item
+      }
+      return item
+    })
+    await fetch(`https://task-manage-3536b-default-rtdb.firebaseio.com/tasks/${key}.json`,{
       method:'DELETE',
     })
 
@@ -56,7 +82,7 @@ const fetchTask = async (id)=>{
        const taskToToggle = await fetchTask(id);
        const updTask = {...taskToToggle,reminder:!taskToToggle.reminder};
 
-       const res = await fetch(`http://localhost:5000/tasks/${id}`,{
+       const res = await fetch(`https://task-manage-3536b-default-rtdb.firebaseio.com/tasks/${id}.json`,{
          method:'PUT',
          headers:{
            'Content-Type' : 'application/json'
@@ -77,21 +103,26 @@ const fetchTask = async (id)=>{
    //Add Task
 
    const addTask = async (task)=>{
-    const res = await fetch('http://localhost:5000/tasks',{
+    const id = Math.floor(Math.random()*100000)+1;
+    const newTask = {id, ...task};
+    
+    const res = await fetch('https://task-manage-3536b-default-rtdb.firebaseio.com/tasks.json',{
       method:'POST',
       headers:{
         'Content-type' :'application/json'
       },
-      body: JSON.stringify(task)
+      body: JSON.stringify(newTask)
     })
+    const data = await res.json();
+    const res1 = await fetch(`https://task-manage-3536b-default-rtdb.firebaseio.com/tasks.json`)
+    const data1 = await res1.json();
+    
+    const arr = Object.values(data);
+    setTasks([...tasks,data1[arr[0]]]);
 
-    const data = await res.json()
-    setTasks([...tasks,data]);
 
 
-
-    //  const id = Math.floor(Math.random()*100000)+1;
-    //  const newTask = {id, ...task};
+    
     //  setTasks([...tasks,newTask])
    }
 
